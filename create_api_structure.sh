@@ -1,81 +1,128 @@
 #!/bin/bash
 
-help()
-{
-    echo "Usage: api_structure [ -n | --api_name ]
-               [ -h | --help  ]"
-    exit 2
+function help(){
+    echo "Usage: 
+    bash create_api_structure.sh [ -n | --api_name ]
+                                [ -p ] --path (optional)
+                                [ -h | --help  ]"
+    exit 1
 }
 
-SHORT=n:,h
-LONG=api_name:,help
-OPTS=$(getopt -n api_structure --options $SHORT --longoptions $LONG -- "$@")
-
-VALID_ARGUMENTS=$# # Returns the count of arguments that are in short or long options
-
-if [ "$VALID_ARGUMENTS" -eq 0 ]; then
-  help
-fi
-
-eval set -- "$OPTS"
-
-while :
-do
-  case "$1" in
-    -n | --api_name )
-      api_name="$2"
-      shift 2
-      ;;
-
-    -h | --help)
-      help
-      ;;
-    --)
-      shift;
-      break
-      ;;
-    *)
-      echo "Unexpected option: $1"
-      help
-      ;;
-  esac
-done
-
-virtualenv venv
-source venv/bin/activate
-
-touch "README.md" "Dockerfile" "requirements.txt" ".env"
-
-# fill .env
-cat <<EOT >> .env
+function fill_env() {
+cat <<EOT >> $path/.env
 IS_DEBUG=False
 API_KEY='serdarakyol55@outlook.com'
 EOT
+}
 
-# fill README.md
-cat <<EOT >> README.md
+function fill_readme(){
+cat <<EOT >> $path/README.md
 # $api_name api created by bash script
 EOT
+}
 
-mkdir $api_name"_api"
-cd $api_name"_api"
-mkdir "api" "core" "data" "models" "services" "utils" "test"
+function current_folder_create_api(){
+    virtualenv venv
 
-# create main file
-touch "main.py"
+    touch "README.md" "Dockerfile" "requirements.txt" ".env"
 
-# api folder
-mkdir "api/routes"
-touch "api/routes/router.py" "api/routes/router_"$api_name".py"
+    fill_env
 
-# core folder
-touch "core/config.py" "core/event_handler.py" "core/messages.py" "core/security.py"
+    fill_readme
 
-# model folder
-touch "models/model_"$api_name".py"
+    mkdir $api_name"_api"
+    cd $api_name"_api"
+    mkdir "api" "core" "data" "models" "services" "utils" "test"
 
-# service folder
-touch "services/service_"$api_name".py"
+    # create main file
+    touch "main.py"
 
-# utils folder
-touch "utils/utils.py"
+    # api folder
+    mkdir "api/routes"
+    touch "api/routes/router.py" "api/routes/router_"$api_name".py"
+
+    # core folder
+    touch "core/config.py" "core/event_handler.py" "core/messages.py" "core/security.py"
+
+    # model folder
+    touch "models/model_"$api_name".py"
+
+    # service folder
+    touch "services/service_"$api_name".py"
+
+    # utils folder
+    touch "utils/utils.py"
+}   
+
+function path_create_api(){
+    # create virtual env
+    virtualenv $path/venv
+
+    touch "$path/.env" "$path/Dockerfile" "$path/README.md" "$path/requirements.txt" 
+
+    fill_env    
+
+    fill_readme
+        
+    mkdir $path$api_name"_api"
+    cd $path$api_name"_api"
+    mkdir "api" "core" "data" "models" "services" "utils" "test"
+
+    # create main file
+    touch "main.py"
+
+    # api folder
+    mkdir "api/routes"
+    touch "api/routes/router.py" "api/routes/router_"$api_name".py"
+
+    # core folder
+    touch "core/config.py" "core/event_handler.py" "core/messages.py" "core/security.py"
+
+    # model folder
+    touch "models/model_"$api_name".py"
+
+    # service folder
+    touch "services/service_"$api_name".py"
+
+    # utils folder
+    touch "utils/utils.py"
+}
+
+while getopts ":n:p:" o; do
+    case "${o}" in
+        n)
+            api_name=${OPTARG}
+            ;;
+        p)
+            path=${OPTARG}
+            ;;
+        *)
+            help
+            ;;
+    esac
+done
+shift $((OPTIND-1))
+
+
+# if lenght of api_name is zero 
+if [ -z $api_name ]; then
+    help
+else
+    # if lenght of path is greater than zero
+    if [ -d "$path" ]; then
+        path_create_api $path $api_name
+    else
+        echo "Directory is NOT exist or specified. Do you want to create the structure in current folder? $(pwd)"
+        current_path = $(pwd)
+        select yn in "Yes" "No"; do
+            case $yn in
+                Yes )
+                    current_folder_create_api $api_name
+                    break;;
+                No )
+                    echo "Existing script..."; 
+                    exit;;
+            esac
+        done
+    fi
+fi
